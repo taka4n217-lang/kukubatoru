@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>九九 さがし</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBF7EF;
+  --ink:#2B2724;
+  --red:#E4574B;
+  --blue:#5A8FC0;
+  --yellow:#F5D06B;
+  --green:#8CB06A;
+  --pink:#EDA6A0;
+  --font:'Zen Maru Gothic','Hiragino Maru Gothic ProN','BIZ UDPGothic','Yu Gothic',sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;margin:0;}
+body{
+  font-family:var(--font);
+  color:var(--ink);
+  background-color:var(--paper);
+  background-image:radial-gradient(rgba(43,39,36,.07) 1px, transparent 1px);
+  background-size:14px 14px;
+  overflow:hidden;
+  touch-action:manipulation;
+  user-select:none;
+}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;}
+.screen.on{display:flex;}
+
+/* 手がきふうのわく */
+.frame{
+  border:3px solid var(--ink);
+  border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+  background:#fff;
+}
+.frame.b{border-radius:15px 225px 15px 255px/225px 15px 255px 15px;}
+
+/* ============ タイトル ============ */
+#title{align-items:center;justify-content:center;padding:20px;gap:min(3vh,22px);overflow-y:auto;}
+.title-wrap{position:relative;text-align:center;}
+.title-blob{
+  position:absolute;inset:-14px -26px;background:var(--yellow);
+  border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+  transform:rotate(-2deg);z-index:0;
+}
+.title-text{position:relative;z-index:1;font-size:clamp(38px,9vw,74px);font-weight:900;letter-spacing:.06em;}
+.title-sub{font-size:clamp(14px,3.4vw,20px);font-weight:700;margin-top:10px;line-height:1.7;}
+.menu{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;}
+.mode-btn{
+  font-family:var(--font);font-weight:900;color:var(--ink);
+  border:3px solid var(--ink);background:#fff;cursor:pointer;
+  padding:20px 26px 22px;min-width:180px;
+  border-radius:225px 15px 255px 15px/15px 255px 15px 225px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  box-shadow:5px 6px 0 rgba(43,39,36,.85);
+  transition:transform .08s, box-shadow .08s;
+}
+.mode-btn:nth-child(1){background:#FFF6E0;transform:rotate(-1.2deg);}
+.mode-btn:nth-child(2){background:#E9F2FA;transform:rotate(1.2deg);}
+.mode-btn:active{transform:translate(4px,5px) rotate(0deg);box-shadow:1px 1px 0 rgba(43,39,36,.85);}
+.mode-btn .big{font-size:clamp(22px,5vw,30px);}
+.mode-btn .small{font-size:13px;font-weight:700;}
+.vs-note{
+  font-size:clamp(12px,2.8vw,16px);font-weight:700;text-align:center;line-height:1.6;
+  border:2px solid var(--ink);border-radius:15px 225px 15px 255px/225px 15px 255px 15px;
+  background:#fff;padding:8px 18px;transform:rotate(-.6deg);
+}
+.hint-toggle{
+  display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;
+  border:2px dashed var(--ink);border-radius:40px;padding:8px 18px;background:#fff;cursor:pointer;
+}
+.hint-toggle .box{
+  width:22px;height:22px;border:3px solid var(--ink);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1;color:var(--red);
+}
+
+/* ============ ゲーム ============ */
+#game{padding:10px 12px 14px;gap:8px;}
+.topbar{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+.back{
+  font-family:var(--font);font-weight:700;font-size:14px;color:var(--ink);
+  border:2px solid var(--ink);background:#fff;border-radius:30px;padding:6px 14px;cursor:pointer;
+}
+.howto{
+  flex:1;text-align:center;font-weight:700;font-size:clamp(14px,3.2vw,19px);
+  border:2px dashed var(--ink);border-radius:40px;padding:7px 12px;background:#fff;
+}
+.count{font-size:14px;font-weight:700;min-width:62px;text-align:right;}
+
+.board{display:flex;flex:1;gap:10px;min-height:0;}
+.team{
+  flex:0 0 clamp(76px,13vw,132px);border:3px solid var(--ink);
+  border-radius:225px 15px 255px 15px/15px 255px 15px 225px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;
+}
+.team.red{background:#FBE4E1;}
+.team.blue{background:#E3EEF8;}
+.team .name{font-size:clamp(14px,2.6vw,20px);font-weight:900;}
+.team .score{font-size:clamp(34px,7vw,60px);font-weight:900;line-height:1;}
+.team .unit{font-size:13px;font-weight:700;}
+.hidden{display:none !important;}
+
+.stage{
+  position:relative;flex:1;min-width:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;overflow:hidden;
+}
+
+/* もんだいの かず */
+.num-wrap{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;}
+.circle{position:absolute;width:min(94%,560px);height:auto;overflow:visible;pointer-events:none;}
+.circle ellipse{fill:none;stroke:var(--red);stroke-width:4;}
+.circle .draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .55s ease-out forwards;}
+@keyframes draw{to{stroke-dashoffset:0;}}
+.number{
+  position:relative;font-size:min(42vh,34vw,300px);font-weight:900;line-height:.9;
+  transform:rotate(-1.5deg);letter-spacing:-.02em;
+}
+.tap-note{
+  position:absolute;bottom:6px;font-size:clamp(13px,3vw,18px);font-weight:700;
+  display:flex;align-items:center;gap:8px;opacity:.85;animation:bob 1.6s ease-in-out infinite;
+}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.count-hint{
+  position:absolute;top:4px;right:6px;font-size:14px;font-weight:700;
+  border:2px solid var(--ink);border-radius:30px;padding:5px 12px;background:var(--yellow);transform:rotate(2deg);
+}
+
+/* こたえ */
+.answer{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:6px;overflow-y:auto;}
+.answer-head{font-size:clamp(15px,3.4vw,21px);font-weight:900;display:flex;align-items:center;gap:8px;}
+.cards{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;max-width:100%;}
+.card{
+  border:3px solid var(--ink);background:#fff;padding:12px 18px 14px;text-align:center;
+  border-radius:225px 15px 255px 15px/15px 255px 15px 225px;
+  box-shadow:4px 5px 0 rgba(43,39,36,.8);
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.card:nth-child(odd){transform:rotate(-1.4deg);background:#FFFCF2;}
+.card:nth-child(even){transform:rotate(1.4deg);background:#F4FAF2;}
+.card .shiki{font-size:clamp(22px,5vw,40px);font-weight:900;letter-spacing:.02em;white-space:nowrap;}
+.card .yomi{font-size:clamp(12px,2.6vw,17px);font-weight:700;margin-top:1px;color:#6b615a;white-space:nowrap;}
+.swap{display:flex;align-items:center;gap:7px;font-size:clamp(11px,2.3vw,14px);font-weight:700;color:var(--red);}
+.swap svg{width:20px;height:22px;flex:0 0 auto;}
+.swap path{fill:none;stroke:var(--red);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;}
+.swap .rule{width:clamp(16px,4vw,34px);border-top:2px dashed var(--red);}
+.next-note{font-size:clamp(13px,3vw,17px);font-weight:700;opacity:.85;}
+
+.point-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;align-items:center;}
+.pt{
+  font-family:var(--font);font-weight:900;font-size:clamp(15px,3.4vw,20px);color:var(--ink);
+  border:3px solid var(--ink);cursor:pointer;padding:11px 20px;
+  border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+  box-shadow:4px 5px 0 rgba(43,39,36,.8);
+}
+.pt.red{background:#FBE4E1;}
+.pt.blue{background:#E3EEF8;}
+.pt.none{background:#fff;font-size:14px;padding:9px 16px;box-shadow:3px 4px 0 rgba(43,39,36,.8);}
+.pt:active{transform:translate(3px,4px);box-shadow:1px 1px 0 rgba(43,39,36,.8);}
+
+/* タイトルの イラスト */
+.hero{width:min(86vw,340px);height:auto;flex:0 0 auto;}
+.hero path,.hero circle{fill:none;stroke:var(--ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;}
+.hero .w{fill:#fff;}
+.hero .y{fill:var(--yellow);}
+.hero .pk{fill:var(--pink);stroke:none;}
+.hero .p{fill:var(--pink);}
+.hero .bl{fill:#E3EEF8;}
+.hero .rd{fill:#FBE4E1;}
+.hero .ink{fill:var(--ink);stroke:none;}
+.hero .num{font-family:var(--font);font-size:46px;font-weight:900;fill:var(--ink);stroke:none;}
+
+.doodle{width:52px;height:52px;flex:0 0 auto;}
+.doodle path,.doodle circle,.doodle line{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;}
+.doodle .fillp{fill:var(--ink);stroke:none;}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;transition:none !important;}
+  .circle .draw{stroke-dashoffset:0;}
+}
+@media (max-width:520px){
+  .team{flex-basis:66px;}
+  .card{padding:8px 12px 10px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= タイトル ================= -->
+<div class="screen on" id="title">
+  <svg class="hero" viewBox="0 0 320 148" aria-hidden="true">
+    <!-- きらきら -->
+    <path class="y" d="M24 24 l3.5 9 9 3.5 -9 3.5 -3.5 9 -3.5-9 -9-3.5 9-3.5z"/>
+    <path class="p" d="M296 30 l3 7.5 7.5 3 -7.5 3 -3 7.5 -3-7.5 -7.5-3 7.5-3z"/>
+    <path class="y" d="M160 8 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5-6 -6-2.5 6-2.5z"/>
+
+    <!-- ひだりの こ -->
+    <path class="bl" d="M40 128 q0 -32 22 -32 q22 0 22 32 z"/>
+    <path d="M42 104 q-16 -8 -14 -28"/>
+    <path d="M84 104 q18 -6 26 -20"/>
+    <circle class="w" cx="62" cy="60" r="25"/>
+    <path d="M60 35 q5 -11 12 -6"/>
+    <circle class="pk" cx="46" cy="68" r="5"/>
+    <circle class="pk" cx="78" cy="68" r="5"/>
+    <circle class="ink" cx="54" cy="57" r="3.2"/>
+    <circle class="ink" cx="71" cy="57" r="3.2"/>
+    <path d="M55 68 q7 7 14 0"/>
+    <path d="M30 122 l-4 12 M46 126 l-2 12"/>
+
+    <!-- まんなかの かず -->
+    <circle class="y" cx="160" cy="66" r="40"/>
+    <circle cx="160" cy="66" r="33" style="stroke-dasharray:3 6;opacity:.55"/>
+    <text x="160" y="84" text-anchor="middle" class="num">9</text>
+
+    <!-- みぎの こ -->
+    <path class="rd" d="M236 128 q0 -32 22 -32 q22 0 22 32 z"/>
+    <path d="M236 104 q-18 -6 -26 -20"/>
+    <path d="M280 104 q16 -10 14 -28"/>
+    <circle class="w" cx="258" cy="60" r="25"/>
+    <path d="M250 36 q4 -10 9 -5 M262 34 q6 -9 10 -3"/>
+    <circle class="pk" cx="242" cy="68" r="5"/>
+    <circle class="pk" cx="274" cy="68" r="5"/>
+    <circle class="ink" cx="250" cy="57" r="3.2"/>
+    <circle class="ink" cx="267" cy="57" r="3.2"/>
+    <path class="ink" d="M250 66 q8 12 16 0 q-8 3 -16 0z"/>
+    <path d="M274 122 l4 12 M258 126 l2 12"/>
+  </svg>
+
+  <div class="title-wrap">
+    <div class="title-blob"></div>
+    <div class="title-text">九九 さがし</div>
+  </div>
+  <div class="title-sub">かずを みて、その こたえに なる<br>九九を さがす ゲームだよ</div>
+
+  <div class="menu">
+    <button class="mode-btn" id="btn-solo">
+      <span class="big">ひとりで</span>
+      <span class="small">じぶんの ペースで れんしゅう</span>
+    </button>
+    <button class="mode-btn" id="btn-vs">
+      <span class="big">たいせん</span>
+      <span class="small">あかチーム × あおチーム</span>
+    </button>
+  </div>
+
+  <div class="vs-note">たいせん：さきに いえた チームの ボタンを おすと 1てん</div>
+
+  <div class="hint-toggle" id="hint-toggle" role="checkbox" aria-checked="false" tabindex="0">
+    <span class="box" id="hint-box"></span>
+    <span>ヒントを つける（しきが なんこ あるか）</span>
+  </div>
+</div>
+
+<!-- ================= ゲーム ================= -->
+<div class="screen" id="game">
+  <div class="topbar">
+    <button class="back" id="btn-back">もどる</button>
+    <div class="howto" id="howto">この かずに なる 九九を いおう！</div>
+    <div class="count" id="count"></div>
+  </div>
+
+  <div class="board">
+    <div class="team red hidden" id="team-red">
+      <div class="name">あか</div>
+      <div class="score" id="score-red">0</div>
+      <div class="unit">てん</div>
+    </div>
+
+    <div class="stage" id="stage">
+      <!-- もんだい -->
+      <div class="num-wrap" id="q-view">
+        <svg class="circle" id="circle" viewBox="0 0 400 280" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <ellipse class="draw" cx="200" cy="140" rx="168" ry="118" transform="rotate(-3 200 140)" pathLength="1"/>
+          <ellipse class="draw" cx="200" cy="140" rx="160" ry="112" transform="rotate(4 200 140)" pathLength="1" style="animation-delay:.12s;opacity:.55"/>
+        </svg>
+        <div class="number" id="number">36</div>
+        <div class="count-hint hidden" id="count-hint"></div>
+        <div class="tap-note">
+          <svg class="doodle" style="width:26px;height:26px" viewBox="0 0 60 60" aria-hidden="true">
+            <path d="M20 44 l20-24 M40 20 l-12 2 M40 20 l2 12"/>
+          </svg>
+          いえたら タップ
+        </div>
+      </div>
+
+      <!-- こたえ -->
+      <div class="answer hidden" id="a-view">
+        <div class="answer-head">
+          <svg class="doodle" style="width:34px;height:34px" viewBox="0 0 60 60" aria-hidden="true">
+            <circle cx="30" cy="30" r="20"/>
+            <path d="M20 31 l7 8 14-18"/>
+          </svg>
+          <span id="answer-title">こたえの 九九</span>
+        </div>
+        <div class="cards" id="cards"></div>
+        <div class="point-row hidden" id="point-row">
+          <button class="pt red" data-team="red">あかチームに 1てん</button>
+          <button class="pt blue" data-team="blue">あおチームに 1てん</button>
+          <button class="pt none" data-team="none">どちらも なし</button>
+        </div>
+        <div class="next-note" id="next-note">タップで つぎの もんだい</div>
+      </div>
+    </div>
+
+    <div class="team blue hidden" id="team-blue">
+      <div class="name">あお</div>
+      <div class="score" id="score-blue">0</div>
+      <div class="unit">てん</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---- 九九の よみかた ---- */
+  var YOMI = {
+    1:["いんいちが いち","いんにが に","いんさんが さん","いんしが し","いんごが ご","いんろくが ろく","いんしちが しち","いんはちが はち","いんくが く"],
+    2:["にいちが に","ににんが し","にさんが ろく","にしが はち","にご じゅう","にろく じゅうに","にしち じゅうし","にはち じゅうろく","にく じゅうはち"],
+    3:["さんいちが さん","さんにが ろく","さざんが く","さんし じゅうに","さんご じゅうご","さぶろく じゅうはち","さんしち にじゅういち","さんぱ にじゅうし","さんく にじゅうしち"],
+    4:["しいちが し","しにが はち","しさん じゅうに","しし じゅうろく","しご にじゅう","しろく にじゅうし","ししち にじゅうはち","しは さんじゅうに","しく さんじゅうろく"],
+    5:["ごいちが ご","ごに じゅう","ごさん じゅうご","ごし にじゅう","ごご にじゅうご","ごろく さんじゅう","ごしち さんじゅうご","ごは しじゅう","ごっく しじゅうご"],
+    6:["ろくいちが ろく","ろくに じゅうに","ろくさん じゅうはち","ろくし にじゅうし","ろくご さんじゅう","ろくろく さんじゅうろく","ろくしち しじゅうに","ろくは しじゅうはち","ろっく ごじゅうし"],
+    7:["しちいちが しち","しちに じゅうし","しちさん にじゅういち","しちし にじゅうはち","しちご さんじゅうご","しちろく しじゅうに","しちしち しじゅうく","しちは ごじゅうろく","しちく ろくじゅうさん"],
+    8:["はちいちが はち","はちに じゅうろく","はちさん にじゅうし","はちし さんじゅうに","はちご しじゅう","はちろく しじゅうはち","はちしち ごじゅうろく","はっぱ ろくじゅうし","はっく しちじゅうに"],
+    9:["くいちが く","くに じゅうはち","くさん にじゅうしち","くし さんじゅうろく","くご しじゅうご","くろく ごじゅうし","くしち ろくじゅうさん","くは しちじゅうに","くく はちじゅういち"]
+  };
+
+  /* ---- しきを あつめる ---- */
+  function factsOf(n){
+    var list=[];
+    for(var a=1;a<=9;a++){
+      for(var b=1;b<=9;b++){
+        if(a*b===n) list.push({a:a,b:b,yomi:YOMI[a][b-1]});
+      }
+    }
+    return list;
+  }
+  /* ---- ひっくりかえした しきを ペアに する ---- */
+  function groupFacts(facts){
+    var used={}, out=[];
+    facts.forEach(function(f){
+      var k=f.a+"x"+f.b;
+      if(used[k]) return;
+      used[k]=1;
+      var g=[f];
+      if(f.a!==f.b){
+        for(var i=0;i<facts.length;i++){
+          var t=facts[i];
+          if(t.a===f.b && t.b===f.a){ used[t.a+"x"+t.b]=1; g.push(t); break; }
+        }
+      }
+      out.push(g);
+    });
+    return out;
+  }
+
+  function swapMark(){
+    var d=document.createElement("div");
+    d.className="swap";
+    d.innerHTML='<span class="rule"></span>'+
+      '<svg viewBox="0 0 20 22" aria-hidden="true"><path d="M10 3 v16 M6 7 l4-4 4 4 M6 15 l4 4 4-4"/></svg>'+
+      '<span>ひっくりかえし</span>'+
+      '<span class="rule"></span>';
+    return d;
+  }
+
+  var PAIRS=[];
+  for(var i=1;i<=9;i++){ for(var j=1;j<=9;j++){ PAIRS.push(i*j); } }
+
+  /* ---- じょうたい ---- */
+  var state={mode:"solo",phase:"q",n:0,facts:[],count:0,red:0,blue:0,hint:false,last:-1};
+
+  var $=function(id){return document.getElementById(id);};
+  var titleS=$("title"), gameS=$("game");
+
+  /* ---- おと ---- */
+  var actx=null;
+  function beep(freq,dur,type,vol){
+    try{
+      if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
+      if(actx.state==="suspended") actx.resume();
+      var o=actx.createOscillator(), g=actx.createGain();
+      o.type=type||"sine"; o.frequency.value=freq;
+      g.gain.setValueAtTime(vol||0.15,actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+dur);
+      o.connect(g); g.connect(actx.destination);
+      o.start(); o.stop(actx.currentTime+dur);
+    }catch(e){}
+  }
+  function sPop(){beep(660,.12,"triangle",.14);}
+  function sOpen(){beep(520,.10,"sine",.13); setTimeout(function(){beep(780,.16,"sine",.13);},90);}
+  function sPoint(){beep(700,.10,"square",.10); setTimeout(function(){beep(950,.10,"square",.10);},100); setTimeout(function(){beep(1180,.20,"square",.10);},200);}
+
+  /* ---- がめん ---- */
+  function show(el,on){ el.classList[on?"remove":"add"]("hidden"); }
+
+  function newQuestion(){
+    var n;
+    do{ n=PAIRS[Math.floor(Math.random()*PAIRS.length)]; }while(n===state.last && PAIRS.length>1);
+    state.last=n;
+    state.n=n;
+    state.facts=factsOf(n);
+    state.phase="q";
+    state.count++;
+
+    $("number").textContent=String(n);
+    $("count").textContent=(state.mode==="solo")? state.count+"もんめ" : "";
+    show($("q-view"),true);
+    show($("a-view"),false);
+    show($("point-row"),false);
+
+    var ch=$("count-hint");
+    if(state.hint){ ch.textContent="しきは "+state.facts.length+"こ"; show(ch,true); }
+    else{ show(ch,false); }
+
+    $("howto").textContent="この かずに なる 九九を いおう！";
+
+    // まるを かきなおす
+    var c=$("circle");
+    var clone=c.cloneNode(true);
+    c.parentNode.replaceChild(clone,c);
+    clone.id="circle";
+
+    sPop();
+  }
+
+  function reveal(){
+    state.phase="a";
+    var box=$("cards");
+    box.innerHTML="";
+    groupFacts(state.facts).forEach(function(pair){
+      var d=document.createElement("div");
+      d.className="card";
+      pair.forEach(function(f,idx){
+        if(idx>0) d.appendChild(swapMark());
+        var s=document.createElement("div");
+        s.className="shiki";
+        s.textContent=f.a+" × "+f.b+" = "+state.n;
+        var y=document.createElement("div");
+        y.className="yomi";
+        y.textContent=f.yomi;
+        d.appendChild(s); d.appendChild(y);
+      });
+      box.appendChild(d);
+    });
+    $("answer-title").textContent=state.n+"に なる しきは "+state.facts.length+"こ";
+    show($("q-view"),false);
+    show($("a-view"),true);
+    if(state.mode==="vs"){
+      show($("point-row"),true);
+      $("next-note").textContent="ボタンを おすと つぎの もんだい";
+      $("howto").textContent="いえた チームに 1てん！";
+    }else{
+      show($("point-row"),false);
+      $("next-note").textContent="タップで つぎの もんだい";
+      $("howto").textContent="あってた かな？ たしかめよう";
+    }
+    sOpen();
+  }
+
+  function addPoint(team){
+    if(team==="red"){ state.red++; $("score-red").textContent=state.red; sPoint(); }
+    else if(team==="blue"){ state.blue++; $("score-blue").textContent=state.blue; sPoint(); }
+    newQuestion();
+  }
+
+  function start(mode){
+    state.mode=mode;
+    state.count=0; state.red=0; state.blue=0; state.last=-1;
+    $("score-red").textContent="0";
+    $("score-blue").textContent="0";
+    show($("team-red"),mode==="vs");
+    show($("team-blue"),mode==="vs");
+    titleS.classList.remove("on");
+    gameS.classList.add("on");
+    newQuestion();
+  }
+
+  /* ---- そうさ ---- */
+  $("btn-solo").addEventListener("click",function(){start("solo");});
+  $("btn-vs").addEventListener("click",function(){start("vs");});
+
+  $("btn-back").addEventListener("click",function(e){
+    e.stopPropagation();
+    gameS.classList.remove("on");
+    titleS.classList.add("on");
+  });
+
+  $("stage").addEventListener("click",function(){
+    if(state.phase==="q") reveal();
+    else newQuestion();
+  });
+
+  $("point-row").addEventListener("click",function(e){
+    var b=e.target.closest(".pt");
+    if(!b) return;
+    e.stopPropagation();
+    addPoint(b.getAttribute("data-team"));
+  });
+
+  function toggleHint(){
+    state.hint=!state.hint;
+    $("hint-box").textContent=state.hint?"✓":"";
+    $("hint-toggle").setAttribute("aria-checked",state.hint?"true":"false");
+    try{ localStorage.setItem("kuku-sagashi.v1.hint",state.hint?"1":"0"); }catch(e){}
+  }
+  $("hint-toggle").addEventListener("click",toggleHint);
+  $("hint-toggle").addEventListener("keydown",function(e){
+    if(e.key===" "||e.key==="Enter"){ e.preventDefault(); toggleHint(); }
+  });
+  try{
+    if(localStorage.getItem("kuku-sagashi.v1.hint")==="1"){ toggleHint(); }
+  }catch(e){}
+
+  document.addEventListener("keydown",function(e){
+    if(!gameS.classList.contains("on")) return;
+    if(e.key===" "||e.key==="Enter"){
+      e.preventDefault();
+      if(state.phase==="q") reveal(); else newQuestion();
+    }
+  });
+})();
+</script>
+</body>
+</html>
